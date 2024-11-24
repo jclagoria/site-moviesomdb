@@ -1,0 +1,17 @@
+services:
+  postgres:
+    image: postgres:latest  # Versión del contenedor de PostgreSQL
+    container_name: movies-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres         # Usuario predeterminado
+      POSTGRES_PASSWORD: ClaveSecreta123 # Contraseña del usuario
+      POSTGRES_DB: movies_clone       # Nombre de la base de datos predeterminada
+    ports:
+      - "5432:5432"  # Mapea el puerto del host al puerto del contenedor
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persiste los datos
+
+volumes:
+  postgres_data:
+    driver: local

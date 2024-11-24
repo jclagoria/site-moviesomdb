@@ -1,0 +1,17 @@
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://172.18.0.2:5432/movies_clone
+    username: postgres
+    password: ClaveSecreta123
+  security:
+    jwt:
+      secret: your_secret_key
+      expiration: 3600
+  flyway:
+    enabled: true
+    url: jdbc:postgresql://172.18.0.2:5432/movies_clone
+    user: postgres
+    password: ClaveSecreta123
+    locations: classpath:db/migration
+  application:
+    name: omdb-api-service

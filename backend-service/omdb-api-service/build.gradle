@@ -10,6 +10,7 @@ version = '0.0.1-SNAPSHOT'
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
+		targetCompatibility = JavaLanguageVersion.of(17)
 	}
 }
 
@@ -31,7 +32,9 @@ dependencies {
 	implementation "io.jsonwebtoken:jjwt-impl:${jsonwebtokenVersion}"
 	implementation "io.jsonwebtoken:jjwt-jackson:${jsonwebtokenVersion}"
 
+	implementation 'org.flywaydb:flyway-core:9.22.1'
 	runtimeOnly 'org.postgresql:postgresql'
+
 	runtimeOnly 'org.postgresql:r2dbc-postgresql'
 
 	compileOnly 'org.projectlombok:lombok:1.18.34'
