@@ -16,39 +16,87 @@ La aplicación sigue utilizando Spring Reactive y PostgreSQL, pero se añade la 
 Aquí está el esquema actualizado de la base de datos:
 
 ```sql
-CREATE TABLE content_types (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name TEXT NOT NULL
+create table user_app (
+  id serial  primary key,
+  username text not null unique,
+  email text not null unique,
+  password text not null
 );
 
-CREATE TABLE contents (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    title TEXT NOT NULL,
-    description TEXT,
-    release_date DATE,
-    content_type_id BIGINT REFERENCES content_types (id),
-    duration INT,
-    rating NUMERIC(3, 1)
+create table tokens (
+  id serial primary key,
+  user_id bigint references user_app (id),
+  token text not null,
+  is_active boolean default false
 );
 
-CREATE TABLE collections (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    name TEXT NOT NULL,
-    user_id BIGINT NOT NULL
+create table movies (
+  id serial primary key,
+  title text not null,
+  release_year int,
+  rating float
 );
 
-CREATE TABLE collection_contents (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    collection_id BIGINT REFERENCES collections (id),
-    content_id BIGINT REFERENCES contents (id)
+create table actors (
+  id serial primary key,
+  name text not null,
+  birth_year int
 );
 
-CREATE TABLE users (
-    id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    username TEXT NOT NULL UNIQUE,
-    email TEXT NOT NULL UNIQUE,
-    password_hash TEXT NOT NULL
+create table directors (
+  id serial primary key,
+  name text not null,
+  birth_year int
 );
+
+create table genres (
+  id serial primary key,
+  name text not null
+);
+
+create table movie_actors (
+  movie_id bigint references movies (id),
+  actor_id bigint references actors (id),
+  primary key (movie_id, actor_id)
+);
+
+create table movie_directors (
+  movie_id bigint references movies (id),
+  director_id bigint references directors (id),
+  primary key (movie_id, director_id)
+);
+
+create table movie_genres (
+  movie_id bigint references movies (id),
+  genre_id bigint references genres (id),
+  primary key (movie_id, genre_id)
+);
+
+create table ratings (
+  id serial primary key,
+  movie_id bigint references movies (id),
+  source text,
+  value text
+);
+
+create table favorite_movies (
+  user_id bigint references user_app (id),
+  movie_id bigint references movies (id),
+  primary key (user_id, movie_id)
+);
+
+create table collections (
+  id serial primary key,
+  user_id bigint references user_app (id),
+  name text not null
+);
+
+create table collection_movies (
+  collection_id bigint references collections (id),
+  movie_id bigint references movies (id),
+  primary key (collection_id, movie_id)
+);
+```
 
 === Diagrama de Componentes
 
@@ -80,3 +128,4 @@ package "Base de Datos Relacional (PostgreSQL)" {
 [Controlador de Detalle] --> [API por IMDbID]
 [Controlador de Detalle] --> [Tabla de Películas]
 @enduml
+```
