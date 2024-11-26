@@ -1,17 +1,16 @@
 package com.omdb.api.config;
 
 import com.omdb.api.config.security.JwtReactiveAuthenticationManager;
-import com.omdb.api.config.security.JwtTokenFilter;
+import com.omdb.api.config.security.JwtSecurityContextRepository;
 import com.omdb.api.config.security.JwtTokenProvider;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.authentication.ReactiveAuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.config.annotation.web.reactive.EnableWebFluxSecurity;
-import org.springframework.security.config.web.server.SecurityWebFiltersOrder;
 import org.springframework.security.config.web.server.ServerHttpSecurity;
 import org.springframework.security.web.server.SecurityWebFilterChain;
-import reactor.core.publisher.Mono;
+import org.springframework.security.web.server.context.ServerSecurityContextRepository;
 
 @Configuration
 @EnableWebFluxSecurity
@@ -27,25 +26,31 @@ public class SecurityConfig {
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
+                .cors(ServerHttpSecurity.CorsSpec::disable)
                 .authorizeExchange(exchange -> exchange
-                        .pathMatchers("/api/v1/auth/**").permitAll() // Permitir rutas públicas
-                        .anyExchange().authenticated())          // Todas las demás requieren autenticación
-                .authenticationManager(authenticationManager())  // Configura autenticación
+                        .pathMatchers("/api/v1/auth/register",
+                                "/api/v1/auth/login",
+                                "/api/v1/auth/***").permitAll()
+                )
+                .authenticationManager(reactiveAuthenticationManager())
+                .securityContextRepository(securityContextRepository())
                 .build();
     }
 
     @Bean
-    public ReactiveAuthenticationManager authenticationManager() {
-        return authentication -> {
-            String token = authentication.getCredentials().toString();
-            String username = jwtTokenProvider.getUsername(token);
+    @Primary
+    public ReactiveAuthenticationManager reactiveAuthenticationManager() {
+        return new JwtReactiveAuthenticationManager(jwtTokenProvider);
+    }
 
-            if (username == null) {
-                return Mono.error(new RuntimeException("Token inválido"));
-            }
+    @Bean
+    public ServerSecurityContextRepository securityContextRepository() {
+        return new JwtSecurityContextRepository(jwtTokenProvider, reactiveAuthenticationManager());
+    }
 
-            return Mono.just(new UsernamePasswordAuthenticationToken(username, null, null));
-        };
+    @Bean(name = "jwtAuthenticationManager")
+    public ReactiveAuthenticationManager jwtReactiveAuthenticationManager() {
+        return new JwtReactiveAuthenticationManager(jwtTokenProvider);
     }
 
 }
