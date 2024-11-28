@@ -1,17 +1,17 @@
 package com.omdb.api.config.security;
 
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import jakarta.annotation.PostConstruct;
-import lombok.extern.slf4j.Slf4j;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
-import java.security.InvalidKeyException;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
@@ -63,9 +63,16 @@ public class JwtTokenProvider {
             Jwts.parser().setSigningKey(secretKey)
                     .build().parseSignedClaims(token);
             return true;
+        } catch (ExpiredJwtException ex) {
+            tokenLogger.error("Token expirado");
+        } catch (MalformedJwtException ex) {
+            tokenLogger.error("Token mal formado");
+        } catch (SignatureException ex) {
+            tokenLogger.error("Firma inválida en el token");
         } catch (Exception ex) {
-            return false;
+            tokenLogger.error("Error al validar el token: {}", ex.getMessage());
         }
+        return false;
     }
 
     public String getUsername(String token) {

@@ -28,9 +28,9 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(ServerHttpSecurity.CorsSpec::disable)
                 .authorizeExchange(exchange -> exchange
-                        .pathMatchers("/api/v1/auth/register",
-                                "/api/v1/auth/login",
+                        .pathMatchers(
                                 "/api/v1/auth/***").permitAll()
+                        .pathMatchers("/api/v1/omdb/**").authenticated()
                 )
                 .authenticationManager(reactiveAuthenticationManager())
                 .securityContextRepository(securityContextRepository())

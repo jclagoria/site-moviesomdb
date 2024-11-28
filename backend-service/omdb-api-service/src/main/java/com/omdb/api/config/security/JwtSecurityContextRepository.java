@@ -33,9 +33,14 @@ public class JwtSecurityContextRepository implements ServerSecurityContextReposi
     @Override
     public Mono<SecurityContext> load(ServerWebExchange exchange) {
         String token = extractToken(exchange.getRequest());
-        if (token == null || !jwtTokenProvider.validateToken(token)) {
+        if (token == null) {
             return Mono.empty();
         }
+
+        if (!jwtTokenProvider.validateToken(token)) {
+            return Mono.error(new SecurityException("Token invalido o expirado"));
+        }
+
         return authenticationManager.authenticate(new BearerTokenAuthenticationToken(token))
                 .map(SecurityContextImpl::new);
     }
@@ -43,7 +48,7 @@ public class JwtSecurityContextRepository implements ServerSecurityContextReposi
     private String extractToken(ServerHttpRequest request) {
         String bearerToken = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7); // Eliminar el prefijo "Bearer ".
+            return bearerToken.substring(7);
         }
         return null;
     }

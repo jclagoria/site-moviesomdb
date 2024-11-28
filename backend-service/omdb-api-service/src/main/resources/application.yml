@@ -20,3 +20,7 @@ logging:
     org:
       springframework:
         security: DEBUG
+external:
+  api:
+    url: 'https://www.omdbapi.com/'
+    key: '5d89d0b1'
