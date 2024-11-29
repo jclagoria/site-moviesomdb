@@ -1,18 +1,24 @@
 package com.omdb.api.external.service;
 
 import com.omdb.api.external.configuration.ApiExternalCall;
-import com.omdb.api.external.dto.MovieDto;
 import com.omdb.api.external.dto.ResultMovieDto;
+import com.omdb.api.external.mapper.QueryResultMapper;
 import com.omdb.api.external.model.Movie;
 import com.omdb.api.external.model.QueryResult;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class OMDBApiService {
+
+    private static final Logger logger = LoggerFactory.getLogger(OMDBApiService.class);
 
     private final String API_KEY_OMDB;
     private final ApiExternalCall apiExternalCall;
@@ -22,42 +28,37 @@ public class OMDBApiService {
         this.apiExternalCall = apiExternalCall;
     }
 
+    /**
+     * Searches for movies based on the given criteria.
+     *
+     * @param query the search query.
+     * @param type the type of the content (e.g., movie, series, etc.).
+     * @param year the year of release.
+     * @param page the page number for pagination.
+     * @return a Mono containing the result in DTO format.
+     */
     public Mono<ResultMovieDto> searchByCriteria(String query, String type, Integer year, Integer page) {
 
-        StringBuilder queryBuilder = new StringBuilder();
-        queryBuilder.append("?apikey=").append(API_KEY_OMDB);
-        queryBuilder.append("&s=").append(query);
-        queryBuilder.append("&page=").append(page.intValue());
-
-        if( type != null) {
-            queryBuilder.append("&t=").append(type);
+        if (query == null || query.isEmpty() || page == null || page < 0) {
+            return Mono.error(new IllegalArgumentException("Invalid paremeters for criteria"));
         }
 
-        return apiExternalCall.getMonoObject(queryBuilder.toString(), QueryResult.class)
-                .flatMap(this::mapToDTO);
-    }
+        String url = UriComponentsBuilder.fromUriString("/")
+                .queryParam("apikey", API_KEY_OMDB)
+                .queryParam("s", query)
+                .queryParam("page", page)
+                .queryParamIfPresent("t", Optional.ofNullable(type))
+                .queryParamIfPresent("y", Optional.ofNullable(year))
+                .toUriString();
 
-    private Mono<ResultMovieDto> mapToDTO(QueryResult result) {
+        logger.info("Constructed OMDB wuery URL: {}", url);
 
-        if (result.getSearch() == null || result.getResponse().equalsIgnoreCase("False")) {
-            return Mono.just(new ResultMovieDto(List.of(), 0, 0));
-        }
-
-        int totalResults = Integer.parseInt(result.getTotalResults());
-        int totalPages = (int) Math.ceil(totalResults / 10.0);
-
-        List<MovieDto> resultMovies = result.getSearch().stream()
-                .map(movie ->
-                        new MovieDto(
-                            movie.getImdbID(),
-                            movie.getTitle(),
-                            movie.getYear(),
-                            movie.getType(),
-                            movie.getPoster()
-                ))
-                .toList();
-
-        return Mono.just(new ResultMovieDto(resultMovies, totalResults, totalPages));
+        return apiExternalCall.getMonoObject(url, QueryResult.class)
+                .flatMap(QueryResultMapper::mapToDTO)
+                .onErrorResume(exception -> {
+                    logger.error("Error calling OMDB API: {}", exception.getMessage(), exception);
+                    return Mono.just(new ResultMovieDto(List.of(), 0, 0));
+                });
     }
 
     public Mono<Movie> searchByIdIMDB(String id) {
